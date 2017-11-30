@@ -1,0 +1,364 @@
+-- 1. Crie um BD com o nome Clinica
+CREATE DATABASE clinica
+
+-- 2. Crie as seguintes tabelas neste BD:
+CREATE TABLE Ambulatorios (
+    nroa INT,
+    andar NUMERIC(3) NOT NULL,
+    PRIMARY KEY (nroa)
+);
+
+CREATE TABLE Medicos (
+    codm INT,
+    nome VARCHAR(50) NOT NULL,
+    idade SMALLINT NOT NULL,
+    especialidade CHAR(20),
+    CPF NUMERIC(11) UNIQUE,
+    cidade VARCHAR(30),
+    nroa INT,
+    PRIMARY KEY (codm)
+);
+
+CREATE TABLE pacientes (
+    codp INT,
+    nome VARCHAR(40) NOT NULL,
+    idade SMALLINT,
+    CPF NUMERIC(11) UNIQUE,
+    doenca VARCHAR(40) NOT NULL,
+    PRIMARY KEY (codp)
+);
+
+CREATE TABLE funcionarios (
+    codf INT,
+    nome VARCHAR(40) NOT NULL,
+    idade SMALLINT,
+    CPF NUMERIC(11) UNIQUE,
+    cidade VARCHAR(30),
+    salario NUMERIC,
+    cargo VARCHAR (20),
+    PRIMARY KEY (codf)
+);
+
+CREATE TABLE consultas (
+    codm INT,
+    codp INT,
+    data DATE,
+    hora TIME,
+    FOREIGN KEY (codm)REFERENCES Medicos (codm),
+    FOREIGN KEY (codp)REFERENCES pacientes(codp)
+);
+
+-- 3. Altere a tabela Ambulatorios criando a coluna capacidade (smallint) e a tabela Pacientes criando a coluna cidade (varchar(30));
+    ALTER TABLE public.ambulatorios
+       ADD COLUMN capacidade smallint;
+    ALTER TABLE public.pacientes
+      ADD COLUMN cidade varchar(30);
+
+-- 4. Altere a tabela Funcionarios removendo a coluna cargo 
+ALTER TABLE funcionarios
+	DROP COLUMN cargo;
+
+-- 5 . Altere a tabela Medicos criando uma FK para a coluna nroa que referencia a coluna nroa de Ambulatórios, e crie uma nova coluna ativo (bool) com valor padrão inicial verdadeiro (true) 
+ALTER TABLE medicos 
+    ADD CONSTRAINT Vinculo_ambulatorios
+    FOREIGN KEY (nroa) REFERENCES ambulatorios(nroa),
+    ADD COLUMN 	ativo bool DEFAULT (true);
+
+-- 6. O campo doenca foi mal interpretado e está no lugar errado. Corrija removendo este campo na tabela Pacientes e adicione-o na tabela Consultas 
+ALTER TABLE pacientes
+    DROP COLUMN doenca;
+ALTER TABLE consultas
+    ADD COLUMN doenca VARCHAR(40) NOT NULL;
+
+-- 7. Crie uma restrição de integridade de verificação que garanta que não possa ser registrada uma consulta antes das 06:00 nem depois das 21:00.
+ALTER TABLE consultas
+    ADD CONSTRAINT Madrugada
+    CHECK (hora > '06:00' and hora < '21:00');
+
+-- 8. Popular as tabelas
+INSERT INTO ambulatorios (nroa, andar, capacidade)
+VALUES (1,1,30),
+	   (2,1,50),
+	   (3,2,40),
+	   (4,2,25),
+	   (5,2,55);
+
+INSERT INTO funcionarios (codf, nome, idade, cidade, salario, cpf)
+VALUES (1,'Rita',32,'Sao Jose', 1200, 20000100000),
+(2,'Maria',55,'Palhoca', 1220, 30000110000),
+(3,'Caio',45,'Florianopolis', 1100, 41000100000),
+(4,'Carlos',44,'Florianopolis', 1200, 51000110000),
+(5,'Paula',33,'Florianopolis', 2500, 61000111000);
+
+INSERT INTO pacientes (codp, nome, idade, cidade, cpf)
+VALUES (1, 'Ana', 20, 'Florianopolis', 20000200000),
+	   (2, 'Paulo', 24, 'Palhoca', 20000220000),
+	   (3, 'Lucia', 30, 'Biguacu', 22000200000),
+	   (4, 'Carlos', 28, 'Joinville', 11000110000),
+	   (5, 'Denise', 26, 'Joinville', 30120120231),
+	   (6, 'Marcos', 42, 'Bombinhas', 12347860123),
+	   (7, 'Debora', 19, 'Florianopolis', 56312456478);	
+
+INSERT INTO medicos (codm, nome, idade, especialidade, cpf, cidade, nroa)
+VALUES (1,'Joao',40,'ortopedia', 10000100000,'Florianopolis',1),
+	   (2,'Maria',42,'traumatologia',10000110000,'Blumenau',2),
+	   (3,'Pedro',51,'pediatria', 11000100000,'Sao Jose',2),
+	   (4,'Carlos',28,'ortopedia', 11000110000,'Joinville',NULL),
+	   (5,'Marcia',33,'neurologia', 11000111000,'Biguacu',3);
+
+INSERT INTO consultas (codm, codp, data, hora, doenca)
+VALUES (1,1,'2006/06/12', '14:00', 'gripe'),
+	   (1,4,'2006/06/13', '10:00', 'tendinite'),
+	   (2,1,'2006/06/13', '09:00', 'fratura'),
+	   (2,2,'2006/06/13', '11:00', 'fratura'),
+	   (2,3,'2006/06/14', '14:00', 'traumatismo'),
+	   (2,4,'2006/06/14', '17:00', 'checkup'),
+	   (3,1,'2006/06/19', '18:00', 'gripe'),
+	   (3,3,'2006/06/12', '10:00', 'virose'),
+	   (3,4,'2006/06/19', '13:00', 'virose'),
+	   (4,4,'2006/06/20', '13:00', 'tendinite'),
+	   (4,4,'2006/06/22', '19:30', 'dengue');
+
+-- 9.a.O paciente Paulo mudou-se para Ilhota
+UPDATE pacientes
+SET cidade = ‘Ilhota’
+WHERE codp=2;
+
+-- 9.b.A consulta do médico 1 com o paciente 4 foi remarcada para às 12:00 do dia 4 de Julho de 2006 
+UPDATE consultas
+	SET data = ‘2006/07/04’,
+	        hora = ‘12:00’
+	WHERE codm=1 and codp=4;
+
+-- 9.c.A paciente Ana fez aniversário
+UPDATE pacientes
+	SET idade=21
+	WHERE codp=1;
+
+-- 9.dA consulta do médico Pedro (codm=3) com o paciente Carlos (codp=4) foi postergada para uma hora e meia depois 
+UPDATE consultas
+	SET hora=’11:30’
+	WHERE codm =1 and codp=4
+
+-- 9.e O funcionário Carlos (codf=4) deixou a clínica
+DELETE FROM funcionarios
+    WHERE codf=4;
+
+-- 9.f As consultas marcadas após as 19 horas foram canceladas
+DELETE FROM consultas
+    WHERE hora > '19:00'
+
+-- 9.g Os médicos que residem em Biguacu e Joinville foram transferidos para outra clínica. Registrar como inativos.
+DELETE FROM medicos
+	WHERE cidade='Biguacu' AND cidade='Joinville';
+
+-- CONSULTAS
+
+-- 1.a Buscar o nome e o CPF dos médicos com menos de 40 anos ou com especialidade diferente de traumatologia
+SELECT nome, cpf FROM medicos
+WHERE idade < 40 OR especialidade != 'traumatologia';
+
+-- 1.b Buscar todos os dados das consultas marcadas no período da tarde após o dia 19/06/2006
+SELECT     * FROM consultas
+WHERE hora > '12:00' AND data >= '2006/06/19';
+
+-- 1.c Buscar o nome e a idade dos pacientes que não residem em Florianópolis
+SELECT nome, idade FROM pacientes
+WHERE cidade != 'Florianopolis';
+
+-- 1.d Buscar a hora das consultas marcadas antes do dia 14/06/2006 e depois do dia 20/06/2006
+SELECT hora
+    FROM consultas
+    WHERE data < '2006/06/14' AND data > '2006/06/20'
+
+-- 1.e buscar o nome e a idade (em meses) dos pacientes
+SELECT nome , idade*12
+    FROM pacientes;
+-- 1.f Buscar o menor e o maior salário dos funcionários de Florianópolis
+SELECT MAX(salario) AS sal_Maior, MIN(salario) AS sal_Menor
+    FROM funcionarios
+    WHERE cidade = 'Florianopolis';
+
+-- 1.g Qual o horário da última consulta marcada para o dia 13/06/2006
+SELECT MAX(hora) AS ultima
+    FROM consultas
+    WHERE data='2006/06/13';
+
+-- 1.h Qual a média de idade dos médicos e o total de ambulatórios atendidos por eles?
+SELECT AVG(idade) AS media, COUNT (nroa) AS total_Amb
+    FROM medicos;
+
+-- 1.i Buscar o código, o nome e o salário líquido dos funcionários que recebem mais do que $ 1200. Para quem ganha acima de $1200, há um desconto de 12% do salário bruto
+SELECT codf, nome, salario - salario*0,012 AS sal_Liquid
+    FROM funcionarios
+    WHERE salario > '1200';
+
+-- 1.J Buscar o nome dos funcionários que terminam com a letra ‘a’
+SELECT nome
+    FROM funcionarios
+    WHERE nome LIKE '%a'; 
+
+-- 1.K Buscar o nome e idade dos funcionários que possuem o número 6 em seu CPF
+SELECT nome, idade
+    FROM funcionarios
+    WHERE cpf::text LIKE '%6%';
+
+-- 1.L Em quais cidades residem os funcionários e médicos da clínica
+SELECT cidade FROM funcionarios
+UNION
+SELECT cidade FROM medicos;
+
+-- CONSULTAS MULTIPLAS TABELAS
+
+-- 1.a. Buscar nome e CPF dos médicos que são pacientes do hospital
+SELECT m.nome, m.cpf
+    FROM medicos AS m JOIN pacientes AS p
+    ON m.cpf = p.cpf
+
+-- 1.b Buscar os nomes dos funcionários e médicos que residem numa mesma cidade; mostrar também qual é a cidade
+SELECT m.nome, f.nome, m.cidade, f.cidade
+    FROM medicos AS m JOIN funcionarios AS f
+    ON m.cidade = f.cidade
+
+-- 1.c. Buscar código e nome dos pacientes com consulta marcada para horários após às 14 horas
+SELECT p.codp, p.nome
+    FROM pacientes AS p JOIN consultas AS c
+    ON p.codp = c.codp
+    WHERE hora > '14:00'
+
+-- 1.d Buscar o número e andar dos ambulatórios utilizados por médicos ortopedistas
+SELECT a.nroa, a.andar
+    FROM ambulatorios AS a JOIN medicos AS m
+    ON m.nroa = a.nroa
+    WHERE especialidade = 'ortopedia'
+
+-- 1.e Buscar nome e CPF dos pacientes que têm consultas marcadas entre os dias 14 e 16 de junho de 2006
+SELECT p.nome, p.cpf
+    FROM pacientes AS p JOIN consultas AS c
+    ON p.codp = c.codp
+    WHERE data>= '2006/06/14' AND data<= '2006/06/16';
+
+-- 1.f Buscar o nome e a idade dos médicos que têm consulta com a paciente Ana
+SELECT m.nome, m.idade
+    FROM medicos AS m JOIN consultas AS c
+    ON m.codm = c.codm
+    WHERE codp=1;
+
+-- 1.g Buscar o código e nome dos médicos que atendem no mesmo ambulatório do médico Pedro
+SELECT m.codm, m.nome
+    FROM medicos AS m JOIN ambulatorios AS a
+    ON m.nroa = a.nroa
+    WHERE m.nroa= 2;
+
+-- 1.h. Buscar o nome, cpf e idade dos pacientes que têm consultas marcadas com ortopedistas para antes do dia 16/06/2006
+SELECT p.nome AS paciente, p.cpf AS pacienteCPF, p.idade AS pacienteIdade
+    FROM pacientes AS p JOIN consultas AS c
+    ON p.codp = codp_id JOIN medicos AS m 
+    ON m.codm = c.codm_id 
+    WHERE m.especialidade = ‘ortopedia’ AND c.data < ‘2006/06/16’;
+-- 1.i. Nome e salário dos funcionários que moram na mesma cidade do funcionário Carlos e possuem salário superior ao dele
+SELECT f.nome AS funcionario, f.salario
+    FROM funcionarios AS f JOIN funcionarios AS f2 
+    ON f.cidade = f2.cidade 
+    WHERE f.salario > f2.salario AND f2.nome LIKE ‘%carlos%’;
+
+-- 1.j Buscar os dados de todos os ambulatórios e, para aqueles onde médicos dão atendimento, exibir também os seus nomes.
+SELECT a.*, m.nome 
+    FROM ambulatorios AS a LEFT JOIN medicos AS m 
+    ON m.nroa_id = a.nroa;
+
+-- 1.k Para cada consulta listar o nome do médico, o nome do paciente, a data, o horário e o ambulatório utilizado
+SELECT m.nome AS medico, p.nome AS paciente, c.data, c.hora, m.nroa_id AS ambulatorios 
+    FROM consultas AS c JOIN medicos AS m 
+    ON m.codm = c.codm_id JOIN pacientes AS p 
+    ON p.codp = c.codp_id;
+
+-- IN, ANY, ALL e/ou EXISTS, FROM
+
+-- 2.a Buscar nome e CPF dos médicos que são pacientes do hospital
+SELECT nome, cpf 
+    FROM medicos 
+    WHERE cpf = ANY (SELECT cpf FROM pacientes)
+
+-- 2.b Buscar código e nome dos pacientes com consulta marcada para horários após às 14 horas.
+SELECT codp_id 
+    FROM consultas 
+    WHERE EXISTS(select * from pacientes) AND hora > '14:00'
+
+-- 2.c Buscar o número e andar dos ambulatórios onde nenhum médico dá atendimento.
+SELECT nroa, andar 
+    FROM ambulatorios AS a 
+    WHERE NOT EXISTS(SELECT * FROM medicos AS m WHERE m.nroa_id = a.nroa)
+
+-- 2.d Buscar o número e o andar de todos os ambulatórios, exceto o de menor capacidade
+SELECT nroa, andar, capacidade 
+    FROM ambulatorios 
+    WHERE capacidade > ANY (SELECT capacidade FROM ambulatorios)
+
+-- 2.e Buscar nome e CPF dos médicos que não atendem em ambulatórios com capacidade superior à capacidade dos ambulatórios do segundo andar
+SELECT nome, cpf, a.capacidade  
+    FROM medicos as m JOIN ambulatorios AS a 
+    ON m.nroa_id = a.nroa  
+    WHERE a.capacidade < ALL (SELECT capacidade FROM ambulatorios WHERE andar = 2)
+
+-- 2.f Buscar nome e CPF dos médicos que têm consultas marcadas com todos os pacientes
+SELECT nome, cpf 
+    FROM medicos AS m JOIN consultas AS c 
+    ON m.codm = c.codm_id WHERE c.codp_id = ALL (SELECT codp FROM pacientes)
+
+-- GROUP BY, ORDER, ATUALIZAÇÃO
+
+-- 1. Mostre os dados de todos os funcionários ordenados pelo salário (decrescente) e pela idade (crescente). Buscar apenas os três primeiros funcionários nesta ordem.
+SELECT * 
+    FROM funcionarios as f  
+    ORDER BY salario DESC, idade ASC LIMIT 3
+
+-- 2.Mostre o nome dos médicos, o número e andar do ambulatório onde eles atendem, ordenado pelo número do ambulatório
+SELECT nome, nroa_id, a.andar 
+    FROM medicos as m JOIN ambulatorios AS a 
+    ON m.nroa_id = a.nroa ORDER BY nroa DESC
+
+-- 3.Mostre o nome do médico e o nome dos pacientes com consulta marcada, ordenado pela data e pela hora. Buscar apenas as tuplas 3 a 5, nesta ordem.
+SELECT m.nome, p.nome 
+    FROM medicos as m JOIN consultas AS c 
+    ON m.codm = c.codm_id JOIN pacientes AS p 
+    ON p.codp = c.codp_id ORDER BY data, hora DESC LIMIT 3 OFFSET 2
+
+-- 4.Mostre as idades dos médicos e o total de médicos com a mesma idade
+SELECT m.idade, COUNT(*) 
+    FROM medicos as m GROUP BY idade 
+
+-- 5.Mostre as datas e o total de consultas em cada data, para horários após às 12 horas
+SELECT data, COUNT(*)
+    FROM consultas AS c 
+    WHERE hora > '12:00' GROUP BY data 
+
+-- 6.Mostrar os andares onde existem ambulatórios e a média de capacidade por andar
+SELECT andar, AVG(capacidade) AS av 
+    FROM ambulatorios GROUP BY andar
+
+-- 7.Mostrar os andares onde existem ambulatórios e a média de capacidade no andar seja maior ou igual a 40
+SELECT andar, AVG(capacidade) as media_capacidade 
+    FROM ambulatorios GROUP BY andar HAVING AVG(capacidade) >=40
+
+-- 8.Mostrar o nome dos médicos que possuem mais de uma consulta marcada
+SELECT m.nome 
+    FROM medicos m INNER JOIN consultas c 
+    ON c.codm_id = m.codm GROUP BY m.nome HAVING COUNT(*) > 1
+
+-- 9.Passar todas as consultas da paciente Ana para às 19:00
+UPDATE consultas SET hora = '19:00' 
+    WHERE codp_id in (SELECT codp FROM pacientes WHERE nome = 'Ana')
+
+-- 10.Excluir os pacientes que não possuem consultas marcadas
+DELETE FROM pacientes 
+    WHERE codp NOT IN (SELECT codp_id FROM consultas)
+
+-- 11.Passar todas as consultas do médico Pedro marcadas para o período da manhã para o dia 21/11/2006, no mesmo horário
+UPDATE consultas SET data = '2006-11-21' 
+    WHERE codm_id in (SELECT codm FROM medicos WHERE nome = 'Pedro') 
+
+-- 12.O ambulatório 4 foi transferido para o mesmo andar do ambulatório 1 e sua capacidade é agora o dobro da capacidade do ambulatório de maior capacidade da clínica
+UPDATE ambulatorios SET capacidade = (SELECT MAX(capacidade) 
+    FROM ambulatorios)*2 
+    WHERE nroa = 4 UPDATE ambulatorios SET andar = (SELECT andar FROM ambulatorios WHERE nroa = 1) WHERE nroa = 4
